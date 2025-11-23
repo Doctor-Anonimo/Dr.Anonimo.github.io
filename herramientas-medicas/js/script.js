@@ -1,24 +1,55 @@
-// Validar contraseña
+// CLAVE DE ACCESO
+const ACCESS_CODE = "1234";
+const STORAGE_KEY = "medApp_access_granted"; // Nombre para guardar en memoria
+
+// --- INICIO AUTOMÁTICO ---
+document.addEventListener('DOMContentLoaded', () => {
+    // Revisar si ya inició sesión anteriormente
+    if (localStorage.getItem(STORAGE_KEY) === 'true') {
+        showApp();
+    }
+});
+
+// --- LOGIN ---
 function checkPassword() {
     const input = document.getElementById('password-input').value;
     const errorMsg = document.getElementById('error-msg');
-    const loginScreen = document.getElementById('login-screen');
-    const mainApp = document.getElementById('main-app');
 
-    if (input === "1234") {
-        loginScreen.classList.add('hidden');
-        mainApp.classList.remove('hidden');
+    if (input === ACCESS_CODE) {
+        // Guardar en memoria que ya entró
+        localStorage.setItem(STORAGE_KEY, 'true');
+        showApp();
     } else {
         errorMsg.classList.remove('hidden');
         document.getElementById('password-input').value = '';
+        // Ocultar error después de 3 seg
+        setTimeout(() => errorMsg.classList.add('hidden'), 3000);
     }
 }
 
-document.getElementById('password-input').addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') checkPassword();
-});
+function showApp() {
+    document.getElementById('login-screen').style.opacity = '0';
+    setTimeout(() => {
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+    }, 300); // Esperar transición
+}
 
-// Buscador
+// Cerrar sesión (Botón en el menú)
+function logout() {
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+}
+
+// Permitir Enter en el input
+const passInput = document.getElementById('password-input');
+if (passInput) {
+    passInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') checkPassword();
+    });
+}
+
+// --- BUSCADOR ---
 function filterTools() {
     const input = document.getElementById('search-bar');
     const filter = input.value.toLowerCase();
@@ -26,16 +57,33 @@ function filterTools() {
     const cards = toolsContainer.getElementsByClassName('tool-card');
 
     for (let i = 0; i < cards.length; i++) {
-        const title = cards[i].getElementsByTagName("h3")[0];
-        const desc = cards[i].getElementsByClassName("desc")[0];
-        const tag = cards[i].getElementsByClassName("tag")[0];
+        // Buscar en Título, Tag y Descripción
+        const content = cards[i].textContent || cards[i].innerText;
         
-        const txtValue = title.textContent + " " + desc.textContent + " " + tag.textContent;
-
-        if (txtValue.toLowerCase().indexOf(filter) > -1) {
+        if (content.toLowerCase().indexOf(filter) > -1) {
             cards[i].style.display = "";
         } else {
             cards[i].style.display = "none";
         }
+    }
+}
+
+// --- MENÚ LATERAL ---
+function toggleMenu() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    if (sidebar.classList.contains('open')) {
+        // Cerrar
+        sidebar.classList.remove('open');
+        overlay.classList.remove('visible');
+        setTimeout(() => { overlay.style.display = 'none'; }, 300);
+    } else {
+        // Abrir
+        overlay.style.display = 'block';
+        setTimeout(() => {
+            sidebar.classList.add('open');
+            overlay.classList.add('visible');
+        }, 10);
     }
 }

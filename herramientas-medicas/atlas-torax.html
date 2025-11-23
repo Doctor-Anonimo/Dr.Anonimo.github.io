@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atlas Interactivo: Tórax Normal (Edición Pro)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 850: '#151f32', 950: '#020617' },
+                        cyan: { 450: '#22d3ee' },
+                        yellow: { highlighter: 'rgba(255, 255, 0, 0.3)' } 
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    cursor: {
+                        'pencil': 'url(https://cdn-icons-png.flaticon.com/32/588/588395.png) 0 32, auto' 
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #e2e8f0; }
+        
+        /* Flip Card Styles */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        
+        .flip-card-inner {
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        /* Solo gira si NO estamos en modo zoom */
+        .flip-card:not(.zoomed):hover .flip-card-inner, .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        
+        /* Scrollbar fina para el texto reverso */
+        .thin-scroll::-webkit-scrollbar { width: 4px; }
+        .thin-scroll::-webkit-scrollbar-track { background: #1e293b; }
+        .thin-scroll::-webkit-scrollbar-thumb { background: #0ea5e9; border-radius: 2px; }
+
+        html { scroll-behavior: smooth; }
+        
+        /* Animaciones */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fadeIn { animation: fadeIn 0.2s ease-out forwards; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const icons = window.lucide;
+
+        // --- COMPONENTE MODAL DE ZOOM Y DIBUJO MEJORADO ---
+        const CanvasModal = ({ isOpen, onClose, imageSrc, title }) => {
+            const canvasRef = useRef(null);
+            const [isDrawing, setIsDrawing] = useState(false);
+            const [drawMode, setDrawMode] = useState(false);
+            const containerRef = useRef(null);
+            const lastPos = useRef({ x: 0, y: 0 });
+
+            useEffect(() => {
+                if (isOpen && canvasRef.current && containerRef.current) {
+                    const canvas = canvasRef.current;
+                    const container = containerRef.current;
+                    // Ajustar resolución al tamaño real visualizado
+                    canvas.width = container.offsetWidth;
+                    canvas.height = container.offsetHeight;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    
+                    // CONFIGURACIÓN RESALTADOR ESTABLE
+                    // Usamos un color sólido amarillo neón
+                    ctx.strokeStyle = '#FFFF00'; 
+                    // Usamos globalAlpha para la transparencia.
+                    // 0.2 da un efecto de resaltador suave que permite ver la anatomía debajo.
+                    ctx.globalAlpha = 0.2;
+                    // Grosor fino pero visible
+                    ctx.lineWidth = 12;
+                    // Modo de composición: 'source-over' es el estándar. 
+                    // Para evitar acumulación excesiva en una sola pasada, confiamos en el filtro de distancia.
+                    ctx.globalCompositeOperation = 'source-over';
+                }
+            }, [isOpen]);
+
+            const getCoordinates = (e) => {
+                const canvas = canvasRef.current;
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.clientX || e.touches[0].clientX;
+                const clientY = e.clientY || e.touches[0].clientY;
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+            };
+
+            const startDrawing = (e) => {
+                if (!drawMode) return;
+                // Prevenir scroll en móviles al dibujar
+                // e.preventDefault(); 
+                
+                const { x, y } = getCoordinates(e);
+                lastPos.current = { x, y };
+                
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                setIsDrawing(true);
+            };
+
+            const draw = (e) => {
+                if (!isDrawing || !drawMode) return;
+                // e.preventDefault();
+
+                const { x, y } = getCoordinates(e);
+                
+                // FILTRO DE VELOCIDAD/DISTANCIA
+                // Solo dibujamos si el cursor se ha movido más de 6 píxeles.
+                // Esto evita que se dibujen cientos de círculos translúcidos en el mismo punto
+                // al mover el mouse lento, lo cual causaría que la transparencia se pierda (se vuelva opaco).
+                const dist = Math.hypot(x - lastPos.current.x, y - lastPos.current.y);
+                if (dist < 6) return;
+
+                const ctx = canvasRef.current.getContext('2d');
+                // Usamos curva cuadrática para suavizar el trazo si hay saltos
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                
+                // Comenzar nuevo path para el siguiente segmento (importante para opacidad uniforme en trazos complejos)
+                // ctx.beginPath();
+                // ctx.moveTo(x, y);
+                
+                lastPos.current = { x, y };
+            };
+
+            const stopDrawing = () => {
+                if (isDrawing) {
+                    const ctx = canvasRef.current.getContext('2d');
+                    ctx.closePath();
+                    setIsDrawing(false);
+                }
+            };
+
+            const clearCanvas = () => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col animate-fadeIn">
+                    {/* Header Flotante */}
+                    <div className="absolute top-0 left-0 right-0 flex justify-between items-center p-4 z-50 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
+                        <div className="pointer-events-auto bg-slate-900/90 p-2 rounded-lg border border-slate-700 backdrop-blur shadow-2xl flex items-center gap-4">
+                            <h3 className="text-white font-bold text-sm md:text-lg px-2 max-w-[200px] truncate md:max-w-none">{title}</h3>
+                            <div className="h-6 w-px bg-slate-700"></div>
+                            <button 
+                                onClick={() => setDrawMode(!drawMode)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all font-bold text-sm ${drawMode ? 'bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.5)]' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+                            >
+                                {drawMode ? (
+                                    <><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m18 13 4 2-5.55 1.66L14.79 22 13 18"/><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7"/><path d="M5.56 6.6A1 1 0 0 1 4 6"/></svg> ACTIVO</>
+                                ) : (
+                                    <><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg> Dibujar</>
+                                )}
+                            </button>
+                            {drawMode && (
+                                <button onClick={clearCanvas} className="p-2 text-red-400 hover:bg-red-500/10 rounded transition-colors" title="Borrar trazos">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                                </button>
+                            )}
+                        </div>
+                        <button onClick={onClose} className="pointer-events-auto bg-slate-800/80 text-white p-3 rounded-full hover:bg-red-600/80 transition-colors backdrop-blur">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                        </button>
+                    </div>
+
+                    {/* Canvas Area */}
+                    <div className="flex-1 relative w-full h-full flex items-center justify-center bg-slate-950" ref={containerRef}>
+                        <img 
+                            src={`./images/${imageSrc}`} 
+                            className="max-w-full max-h-full object-contain select-none pointer-events-none"
+                            alt="Zoom"
+                        />
+                        <canvas
+                            ref={canvasRef}
+                            className={`absolute inset-0 z-10 w-full h-full ${drawMode ? 'cursor-crosshair' : 'cursor-move'}`}
+                            onMouseDown={startDrawing}
+                            onMouseMove={draw}
+                            onMouseUp={stopDrawing}
+                            onMouseLeave={stopDrawing}
+                            onTouchStart={startDrawing}
+                            onTouchMove={draw}
+                            onTouchEnd={stopDrawing}
+                        />
+                    </div>
+                </div>
+            );
+        };
+
+        // --- COMPONENTES UI ---
+
+        const SectionTitle = ({ children }) => (
+            <h2 className="text-3xl md:text-4xl font-bold text-white mt-24 mb-8 border-b border-cyan-500/30 pb-4 flex items-center gap-3 group">
+                <span className="w-3 h-8 bg-cyan-500 rounded-sm shadow-[0_0_15px_rgba(6,182,212,0.5)] group-hover:shadow-[0_0_25px_rgba(6,182,212,0.8)] transition-all"></span>
+                {children}
+            </h2>
+        );
+
+        const SubTitle = ({ children }) => (
+            <h3 className="text-2xl font-semibold text-cyan-400 mt-16 mb-6 flex items-center gap-2">
+                <div className="p-1 bg-cyan-500/10 rounded border border-cyan-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+                {children}
+            </h3>
+        );
+
+        const Paragraph = ({ children }) => (
+            <p className="text-lg text-slate-300 leading-8 mb-6 text-justify font-light tracking-wide">
+                {children}
+            </p>
+        );
+
+        const ClinicalNote = ({ title, children }) => (
+            <div className="my-8 border-l-4 border-yellow-500 bg-gradient-to-r from-slate-900 to-slate-900/50 p-6 rounded-r-xl shadow-lg">
+                <h4 className="text-yellow-400 font-bold uppercase text-xs tracking-widest mb-3 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>
+                    {title || "Perla Clínica"}
+                </h4>
+                <div className="text-slate-200 text-md italic leading-relaxed">
+                    {children}
+                </div>
+            </div>
+        );
+
+        // --- FLIP CARD CON TEXTO EXTENDIDO ---
+        const FlipCard = ({ img, backText, figNumber, onZoom }) => {
+            const [isFlipped, setIsFlipped] = useState(false);
+
+            return (
+                <div 
+                    className={`flip-card bg-transparent w-full h-96 perspective-1000 cursor-pointer group ${isFlipped ? 'flipped' : ''}`}
+                    onClick={() => setIsFlipped(!isFlipped)}
+                    onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        onZoom(img, figNumber + ": " + backText.substring(0, 50) + "...");
+                    }}
+                >
+                    <div className="flip-card-inner relative w-full h-full text-center transition-transform duration-700 transform-style-3d shadow-2xl rounded-xl border border-slate-800">
+                        
+                        {/* FRENTE */}
+                        <div className="absolute w-full h-full backface-hidden rounded-xl overflow-hidden bg-slate-900">
+                            <div className="w-full h-full flex flex-col relative">
+                                <img 
+                                    src={`./images/${img}`} 
+                                    alt={figNumber} 
+                                    className="w-full h-full object-contain bg-black/40"
+                                    onError={(e) => {
+                                        e.target.onerror = null; 
+                                        e.target.src = "https://placehold.co/600x400/1e293b/cbd5e1?text=Cargar+" + figNumber;
+                                    }}
+                                />
+                                {/* Badge Figura */}
+                                <div className="absolute top-3 right-3 bg-slate-950/90 text-cyan-400 text-xs font-bold px-3 py-1.5 rounded border border-cyan-500/30 shadow-lg font-mono z-10">
+                                    {figNumber}
+                                </div>
+                                {/* Badge Zoom */}
+                                <div className="absolute top-3 left-3 bg-yellow-500 text-black text-[10px] font-extrabold px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 tracking-wider uppercase">
+                                    Doble Click: Zoom
+                                </div>
+                                {/* Overlay Título */}
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 pt-10 text-left">
+                                    <p className="text-white text-sm font-medium line-clamp-2 border-l-2 border-cyan-500 pl-3">
+                                        {backText.split('.')[0]}. <span className="text-slate-400 text-xs ml-1">(Click para leer más)</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* REVERSO (TEXTO EXTENDIDO) */}
+                        <div className="absolute w-full h-full backface-hidden rotate-y-180 rounded-xl overflow-hidden bg-slate-800 flex flex-col">
+                            <div className="bg-slate-900 p-3 border-b border-slate-700 flex justify-between items-center">
+                                <h4 className="text-cyan-400 font-bold text-md">{figNumber}</h4>
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider">Explicación Detallada</span>
+                            </div>
+                            <div className="p-6 text-left overflow-y-auto thin-scroll flex-1">
+                                <p className="text-slate-200 text-sm leading-6 whitespace-pre-line">
+                                    {backText}
+                                </p>
+                            </div>
+                            <div className="p-2 bg-slate-900/50 border-t border-slate-700">
+                                <div className="w-12 h-1 bg-cyan-500/30 rounded-full mx-auto"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const Gallery = ({ images, description, onZoom }) => (
+            <div className="my-10 bg-slate-900/30 p-8 rounded-3xl border border-slate-800/50 shadow-inner">
+                {description && (
+                    <div className="mb-6 flex items-start gap-3 text-slate-400 text-sm italic">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-500 shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>
+                        <p>{description}</p>
+                    </div>
+                )}
+                <div className={`grid grid-cols-1 ${images.length > 1 ? 'md:grid-cols-2 xl:grid-cols-3' : 'max-w-md mx-auto'} gap-8`}>
+                    {images.map((img, idx) => (
+                        <FlipCard key={idx} {...img} onZoom={onZoom} />
+                    ))}
+                </div>
+            </div>
+        );
+
+        const InfoTable = ({ headers, rows }) => (
+            <div className="overflow-hidden my-10 rounded-xl border border-slate-700 shadow-2xl ring-1 ring-white/5">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="bg-slate-800 text-cyan-400">
+                            {headers.map((h, i) => <th key={i} className="p-5 font-bold uppercase text-xs tracking-widest">{h}</th>)}
+                        </tr>
+                    </thead>
+                    <tbody className="text-sm text-slate-300 divide-y divide-slate-700 bg-slate-900/50">
+                        {rows.map((row, i) => (
+                            <tr key={i} className="hover:bg-slate-800/80 transition-colors group">
+                                {row.map((cell, j) => (
+                                    <td key={j} className={`p-5 leading-relaxed ${j===0 ? 'font-semibold text-white' : ''}`}>{cell}</td>
+                                ))}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        );
+
+        // --- CALCULADORA ---
+        const ICTCalculator = () => {
+            const [a, setA] = useState('');
+            const [b, setB] = useState('');
+            const [c, setC] = useState('');
+            const [result, setResult] = useState(null);
+
+            const calculate = () => {
+                const valA = parseFloat(a);
+                const valB = parseFloat(b);
+                const valC = parseFloat(c);
+                if (valA && valB && valC) setResult(((valA + valB) / valC).toFixed(2));
+            };
+
+            return (
+                <div className="bg-slate-900 p-8 rounded-2xl border border-slate-700 shadow-2xl my-12 max-w-3xl mx-auto relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="currentColor" className="text-cyan-500"><path d="M20.42 4.82A5.23 5.23 0 0 0 16.5 3 5.37 5.37 0 0 0 12 5.58 5.37 5.37 0 0 0 7.5 3a5.23 5.23 0 0 0-3.92 1.82c-2.92 3.34-2.68 8.61 2.82 13.42l.5.46L12 24l5.1-5.3.5-.46c5.5-4.81 5.74-10.08 2.82-13.42z"/></svg>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 mb-8 relative z-10">
+                        <div className="p-3 bg-cyan-500/20 rounded-lg text-cyan-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+                        </div>
+                        <div>
+                            <h3 className="text-2xl font-bold text-white">Calculadora ICT</h3>
+                            <p className="text-slate-400 text-sm">Índice Cardiotorácico = (A + B) / C</p>
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 relative z-10">
+                        {[{l:'A (Línea media -> Borde Der)', v:a, s:setA}, {l:'B (Línea media -> Borde Izq)', v:b, s:setB}, {l:'C (Diámetro Torácico Interno)', v:c, s:setC}].map((f, i) => (
+                            <div key={i} className="space-y-2">
+                                <label className="text-xs uppercase font-bold text-cyan-500 tracking-wider">{f.l}</label>
+                                <input type="number" value={f.v} onChange={(e) => f.s(e.target.value)} 
+                                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-4 text-white text-lg font-mono focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-all placeholder-slate-700" placeholder="0.0" />
+                            </div>
+                        ))}
+                    </div>
+
+                    <button onClick={calculate} className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-cyan-500/25 relative z-10 uppercase tracking-widest">
+                        Calcular Resultado
+                    </button>
+
+                    {result && (
+                        <div className={`mt-8 p-6 rounded-xl border relative z-10 transition-all duration-500 transform scale-100 ${parseFloat(result) > 0.5 ? 'bg-red-500/10 border-red-500/50' : 'bg-emerald-500/10 border-emerald-500/50'}`}>
+                            <div className="flex justify-between items-end">
+                                <div>
+                                    <span className="text-slate-400 text-sm uppercase font-semibold">Interpretación</span>
+                                    <span className={`text-2xl font-bold block mt-1 ${parseFloat(result) > 0.5 ? 'text-red-400' : 'text-emerald-400'}`}>
+                                        {parseFloat(result) > 0.5 ? 'CARDIOMEGALIA' : 'NORMAL'}
+                                    </span>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-slate-400 text-sm">Valor ICT</span>
+                                    <span className="text-5xl font-mono font-bold text-white block leading-none mt-1">{result}</span>
+                                </div>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-4 border-t border-white/10 pt-2">
+                                *Nota: Valores superiores a 0.50 en proyección PA y en inspiración profunda se consideran patológicos en adultos.
+                            </p>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- APP PRINCIPAL ---
+        const App = () => {
+            const [activeSection, setActiveSection] = useState('concepto');
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
+            const [modalData, setModalData] = useState({ isOpen: false, img: '', title: '' });
+
+            const navItems = [
+                { id: 'concepto', label: 'Concepto Semiológico' },
+                { id: 'calidad', label: 'Calidad Técnica' },
+                { id: 'anatomia', label: 'Anatomía Normal' },
+                { id: 'transparencia', label: 'Transparencia Pulmonar' },
+                { id: 'vascular', label: 'Vascularización' },
+                { id: 'cardio', label: 'Silueta Cardiaca' },
+                { id: 'medidas', label: 'Medidas Útiles' },
+                { id: 'subsegmentaria', label: 'Anatomía Subsegmentaria' },
+                { id: 'patologia1', label: 'Infiltrados (Opacidades)' },
+                { id: 'patologia2', label: 'Hipertransparencia' },
+                { id: 'patologia3', label: 'Alteración Vascular' },
+                { id: 'mediastino', label: 'Mediastino' },
+            ];
+
+            const scrollTo = (id) => {
+                setActiveSection(id);
+                setIsMenuOpen(false);
+                document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+            };
+
+            const openZoom = (img, title) => {
+                setModalData({ isOpen: true, img, title });
+            };
+
+            return (
+                <div className="flex min-h-screen bg-slate-950 text-slate-200">
+                    <CanvasModal 
+                        isOpen={modalData.isOpen} 
+                        imageSrc={modalData.img} 
+                        title={modalData.title} 
+                        onClose={() => setModalData({ ...modalData, isOpen: false })} 
+                    />
+
+                    {/* MENÚ FLOTANTE HAMBURGUESA */}
+                    <div className="fixed top-6 right-6 z-50">
+                        <button 
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            className="bg-cyan-500 hover:bg-cyan-400 text-slate-900 p-3 rounded-full shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all hover:scale-110 z-50"
+                        >
+                            {isMenuOpen ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+                            )}
+                        </button>
+                    </div>
+
+                    {/* DRAWER DE NAVEGACIÓN */}
+                    <div className={`fixed inset-y-0 right-0 w-80 bg-slate-900/95 backdrop-blur-xl border-l border-slate-700 transform transition-transform duration-300 z-40 overflow-y-auto ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'} shadow-2xl`}>
+                        <div className="p-8 pt-24">
+                            <h2 className="text-xl font-bold text-white mb-6 border-b border-slate-700 pb-2 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-400"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+                                Índice del Capítulo
+                            </h2>
+                            <nav className="space-y-2">
+                                {navItems.map(item => (
+                                    <button 
+                                        key={item.id}
+                                        onClick={() => scrollTo(item.id)}
+                                        className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-between group ${activeSection === item.id ? 'bg-cyan-500/10 text-cyan-400 border-l-2 border-cyan-500' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                                    >
+                                        {item.label}
+                                        <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                                    </button>
+                                ))}
+                            </nav>
+                        </div>
+                    </div>
+
+                    {/* CONTENIDO PRINCIPAL */}
+                    <main className="flex-1 p-6 md:p-12 max-w-5xl mx-auto w-full">
+                        <header className="text-center mb-20 pt-16 animate-fadeIn">
+                            <div className="inline-block p-4 rounded-full bg-slate-800/50 mb-6 border border-slate-700 shadow-2xl">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-400"><path d="M6 18h8"/><path d="M3 22h18"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2"/><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/></svg>
+                            </div>
+                            <h1 className="text-5xl md:text-7xl font-extrabold text-white tracking-tight mb-6">
+                                Radio<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Tórax</span>
+                            </h1>
+                            <p className="text-slate-400 text-xl font-light max-w-2xl mx-auto">
+                                Atlas interactivo de <span className="text-cyan-400 font-medium">Radiología Básica</span>. Domina la interpretación torácica paso a paso.
+                            </p>
+                        </header>
+                        
+                        {/* 1. CONCEPTO SEMIOLÓGICO */}
+                        <section id="concepto">
+                            <SectionTitle>1. Concepto Semiológico</SectionTitle>
+                            <Paragraph>
+                                Para que en una radiografía los límites de una estructura puedan ser bien visualizados es necesario que las estructuras que lo rodean posean una densidad diferente. La <strong>interfase</strong> entre tejidos es lo que crea la imagen radiológica. Por este motivo vemos muy bien la silueta cardiovascular que está rodeada de pulmón: el corazón tiene densidad agua (tejidos blandos) y el pulmón densidad aire.
+                            </Paragraph>
+                            <SubTitle>El Signo de la Silueta</SubTitle>
+                            <Paragraph>
+                                Es el concepto más importante para la localización de lesiones. Se define como la pérdida de la visualización del contorno normal de una estructura anatómica (como el corazón o el diafragma) cuando otra estructura de <strong>igual densidad</strong> (agua) entra en contacto directo con ella.
+                            </Paragraph>
+                            <ClinicalNote title="Aplicación Clínica: Localización">
+                                Si una opacidad pulmonar borra un borde cardiaco, significa que está en el mismo plano anatómico (anterior).
+                                <ul className="list-disc pl-5 mt-3 space-y-2 text-sm">
+                                    <li><strong>Borde Cardiaco Derecho Borrado:</strong> Lesión en el Lóbulo Medio (ej. Neumonía).</li>
+                                    <li><strong>Borde Cardiaco Izquierdo Borrado:</strong> Lesión en la Língula (Lóbulo Superior Izquierdo).</li>
+                                    <li><strong>Bordes Cardiacos Preservados (Visibles):</strong> La lesión es posterior (Lóbulo Inferior), ya que el aire interpuesto entre el corazón y la lesión permite ver el borde ("no hay signo de la silueta").</li>
+                                </ul>
+                            </ClinicalNote>
+                            <Gallery 
+                                onZoom={openZoom}
+                                description="Fundamento físico y aplicación práctica del signo de la silueta."
+                                images={[
+                                    { img: 'fig_2_1.jpg', figNumber: 'Fig 2.1', backText: 'PRINCIPIO FÍSICO:\nEn la parte superior: Dos objetos de igual densidad separados se ven distintos.\nEn la parte inferior: Al entrar en contacto, sus densidades se suman y los bordes internos desaparecen, formando una sola silueta. Esto ocurre en el tórax cuando una neumonía toca el corazón.' },
+                                    { img: 'fig_2_2.jpg', figNumber: 'Fig 2.2', backText: 'ANATOMÍA NORMAL:\nAquí vemos la silueta cardiaca perfectamente delimitada. ¿Por qué? Porque el corazón (densidad agua) está rodeado completamente de aire pulmonar. Esta diferencia de densidades crea la interfase nítida que llamamos "silueta".' },
+                                    { img: 'fig_2_3.jpg', figNumber: 'Fig 2.3', backText: 'PATOLOGÍA (SIGNO POSITIVO):\nNeumonía del Lóbulo Medio.\nObserve cómo el borde derecho del corazón ha desaparecido. La neumonía (agua) está en contacto directo con la aurícula derecha (agua), borrando la interfase. Esto confirma que la lesión es anterior.' }
+                                ]} 
+                            />
+                        </section>
+
+                        {/* 2. CALIDAD TÉCNICA */}
+                        <section id="calidad">
+                            <SectionTitle>2. Conceptos Preliminares: Calidad Técnica</SectionTitle>
+                            <Paragraph>Antes de intentar diagnosticar una patología, debemos asegurarnos de que la "foto" esté bien tomada. Una técnica deficiente puede simular enfermedades que no existen (cardiomegalia falsa en espiración, neumotórax falso por rotación).</Paragraph>
+                            
+                            <SubTitle>1. Par Radiológico</SubTitle>
+                            <Paragraph>
+                                El tórax es una estructura tridimensional comprimida en 2D. Siempre se requieren dos proyecciones ortogonales: <strong>PA (Posteroanterior)</strong> y <strong>Lateral Izquierda</strong>.
+                            </Paragraph>
+                            <Gallery 
+                                onZoom={openZoom}
+                                images={[
+                                    { img: 'fig_2_4.jpg', figNumber: 'Fig 2.4', backText: 'ESTUDIO ESTÁNDAR:\nSe muestra la proyección PA (rayos entran por la espalda) y Lateral. Nótese que en la PA el corazón queda pegado al chasis (película), lo que minimiza su magnificación y da un tamaño real.' },
+                                    { img: 'fig_2_5.jpg', figNumber: 'Fig 2.5', backText: 'LEY DE LA MAGNIFICACIÓN:\nArriba: Objeto cerca de la placa = Sombra nítida y tamaño real (Ej: Corazón en PA).\nAbajo: Objeto lejos de la placa = Sombra magnificada y borrosa (Ej: Corazón en AP). Por esto evitamos la proyección AP si es posible.' },
+                                    { img: 'fig_2_6.jpg', figNumber: 'Fig 2.6', backText: 'EFECTO PORTÁTIL (AP):\nEn pacientes en cama, el rayo entra por delante (AP) y la distancia es corta. El corazón queda lejos de la placa y se magnifica artificialmente. ¡Cuidado con diagnosticar cardiomegalia en pacientes acostados!' }
+                                ]}
+                            />
+
+                            <SubTitle>2. Centrado</SubTitle>
+                            <Paragraph>
+                                Para evaluar la rotación, miramos las clavículas. Los extremos mediales de ambas clavículas deben estar a la misma distancia de las apófisis espinosas vertebrales (línea media).
+                            </Paragraph>
+                            <ClinicalNote>
+                                <strong>¿Por qué importa?</strong> La rotación hacia la izquierda puede hacer que el hilio pulmonar y el botón aórtico parezcan prominentes, simulando masas o adenopatías. También altera la transparencia de un hemitórax (haciéndolo ver más gris), simulando un falso "pulmón blanco".
+                            </ClinicalNote>
+                            <Gallery 
+                                onZoom={openZoom}
+                                images={[
+                                    { img: 'fig_2_7.jpg', figNumber: 'Fig 2.7', backText: 'PA BIEN CENTRADA:\nObserve las líneas dibujadas sobre las clavículas. La distancia (a) desde el borde medial de la clavícula hasta la espinosa central es idéntica en ambos lados. Esto garantiza que no hay rotación.' },
+                                    { img: 'fig_2_8.jpg', figNumber: 'Fig 2.8', backText: 'LATERAL BIEN CENTRADA:\nLos arcos costales posteriores de ambos lados deben superponerse casi perfectamente. Se permite una separación máxima de 1 cm entre ellos. Si están muy separados, la lateral está rotada.' }
+                                ]}
+                            />
+
+                            <SubTitle>3. Penetración (Exposición)</SubTitle>
+                            <Paragraph>
+                                Una placa bien penetrada permite ver sutilmente los cuerpos vertebrales y los espacios intervertebrales a través de la silueta cardiaca ("detrás del corazón").
+                            </Paragraph>
+                            <ul className="list-disc pl-5 mb-4 text-slate-400 space-y-1">
+                                <li><strong>Poco penetrada (Blanda):</strong> El corazón se ve blanco sólido, no se ve la columna. Oculta masas retrocardiacas y exagera la trama vascular.</li>
+                                <li><strong>Muy penetrada (Quemada):</strong> Se ve toda la columna con detalle. El pulmón se ve negro ("quemado"), borrando vasos finos y neumotórax pequeños.</li>
+                            </ul>
+                            <Gallery onZoom={openZoom} images={[{ img: 'fig_2_9.jpg', figNumber: 'Fig 2.9', backText: 'PENETRACIÓN ADECUADA:\nFíjese cómo se logran "adivinar" los cuerpos vertebrales dorsales a través de la sombra blanca del corazón. Esto permite detectar masas escondidas en el mediastino posterior o neumonías retrocardiacas.' }]} />
+
+                            <SubTitle>4. Inspiración</SubTitle>
+                            <Paragraph>
+                                Se pide al paciente que tome aire profundo y lo sostenga. Esto baja el diafragma y expande los pulmones.
+                                <br/><strong>Criterio:</strong> Debemos poder contar <strong>10 arcos costales posteriores</strong> (o 6 anteriores) proyectándose sobre el parénquima pulmonar derecho.
+                            </Paragraph>
+                            <Gallery 
+                                onZoom={openZoom}
+                                images={[
+                                    { img: 'fig_2_10.jpg', figNumber: 'Fig 2.10', backText: 'MALA INSPIRACIÓN (ESPIRADA):\nEl diafragma está alto. Los vasos pulmonares se agrupan en las bases simulando neumonía ("falsos infiltrados"). El corazón se horizontaliza y parece enorme ("falsa cardiomegalia"). ¡No diagnostique con esta placa!' },
+                                    { img: 'fig_2_11.jpg', figNumber: 'Fig 2.11', backText: 'BUENA INSPIRACIÓN:\nDiafragma descendido. Se cuentan claramente 10 costillas posteriores (trayecto horizontal) sobre el pulmón derecho. La trama vascular se ve nítida y el corazón tiene su tamaño real.' },
+                                    { img: 'fig_2_12.jpg', figNumber: 'Fig 2.12', backText: 'LATERAL INSPIRADA:\nEl diafragma debe descender lo suficiente para ver el pulmón aireado hasta el nivel de la vértebra T10 aproximadamente.' }
+                                ]}
+                            />
+                        </section>
+
+                        {/* 3. ANATOMÍA NORMAL */}
+                        <section id="anatomia">
+                            <SectionTitle>3. Estructuras Anatómicas Normales</SectionTitle>
+                            
+                            <SubTitle>Caja Torácica</SubTitle>
+                            <Paragraph>
+                                No se enfoque solo en los pulmones. Realice un barrido sistemático de afuera hacia adentro: Tejidos blandos -> Estructuras óseas -> Pleura -> Parénquima. Muchas lesiones "pulmonares" son en realidad de la pared torácica (ej. un pezón, un callo óseo).
+                            </Paragraph>
+                            <InfoTable 
+                                headers={['Estructura', 'Puntos Clave de Evaluación']}
+                                rows={[
+                                    ['Escápulas', 'Deben rotarse hacia afuera para no superponerse a los pulmones. Su borde medial suele confundirse con neumotórax o engrosamiento pleural.'],
+                                    ['Costillas', 'Diferencie el arco posterior (horizontal, fácil de ver) del anterior (oblicuo hacia abajo, difícil de ver). Busque fracturas o metástasis líticas.'],
+                                    ['Cartílagos', 'Se calcifican con la edad. Patrón en "punta de lanza" (frecuente en mujeres) vs "cóncavo/marginal" (frecuente en hombres).'],
+                                    ['Columna', 'En la proyección PA debe ser recta. En la lateral, la densidad debe disminuir (verse más negra) al bajar desde el cuello hacia el diafragma.']
+                                ]}
+                            />
+                            <Gallery 
+                                onZoom={openZoom}
+                                description="Detalles anatómicos de la pared torácica que a menudo confunden."
+                                images={[
+                                    { img: 'fig_2_13.jpg', figNumber: 'Fig 2.13', backText: 'PARTES BLANDAS:\nNote las sombras de los músculos esternocleidomastoideos en el cuello y los pectorales en el tórax superior. En mujeres, las sombras mamarias aumentan la densidad en las bases. Si falta una mama (mastectomía), ese pulmón se verá más negro (hiperclaro).' },
+                                    { img: 'fig_2_14.jpg', figNumber: 'Fig 2.14', backText: 'LA ESCÁPULA:\nAquí se ve el borde medial de la escápula cruzando el pulmón. Es vital identificarlo para no confundirlo con la línea de la pleura visceral de un neumotórax. Siga el hueso hacia arriba para confirmar.' },
+                                    { img: 'fig_2_15.jpg', figNumber: 'Fig 2.15', backText: 'LA CLAVÍCULA:\nObserve su articulación con el acromion (lateral) y con el manubrio esternal (medial). Son sitios frecuentes de artrosis o luxaciones.' },
+                                    { img: 'fig_2_16.jpg', figNumber: 'Fig 2.16', backText: 'ARCOS COSTALES:\nSe ha resaltado un arco costal completo. La parte posterior (unida a la vértebra) es horizontal. Luego gira y la parte anterior (lateral) desciende oblicuamente hacia el esternón.' },
+                                    { img: 'fig_2_17.jpg', figNumber: 'Fig 2.17', backText: 'CALCIFICACIÓN CONDRAL:\nLos cartílagos que unen las costillas al esternón se calcifican de forma irregular. No los confunda con nódulos pulmonares o cálculos renales/biliares.' },
+                                    { img: 'fig_2_18.jpg', figNumber: 'Fig 2.18', backText: 'EL ESTERNÓN (LATERAL):\nSe compone de tres partes: Manubrio (arriba), Cuerpo (centro) y Apófisis Xifoides (abajo). El ángulo de Louis es la unión manubrio-cuerpo (referencia de T4).' },
+                                    { img: 'fig_2_19.jpg', figNumber: 'Fig 2.19', backText: 'VÉRTEBRA TORÁCICA:\nCuerpo rectangular con pedículos a los lados (ojos de la vértebra). La desaparición de un pedículo es signo clásico de metástasis ósea (Signo del guiño).' },
+                                    { img: 'fig_2_20.jpg', figNumber: 'Fig 2.20', backText: 'COLUMNA LATERAL:\nObserve cómo los cuerpos vertebrales se vuelven más "oscuros" (más aireados) a medida que bajamos hacia el diafragma. Si una vértebra inferior se ve más blanca que la superior, es patológico.' }
+                                ]}
+                            />
+                        </section>
+
+                        {/* 4. TRANSPARENCIA */}
+                        <section id="transparencia">
+                            <SectionTitle>4. Transparencia Pulmonar</SectionTitle>
+                            <Paragraph>
+                                El pulmón normal es radiolúcido (negro) porque está lleno de aire. La evaluación se basa en la <strong>simetría</strong>: el lado derecho debe tener la misma densidad que el izquierdo en puntos comparables.
+                            </Paragraph>
+                            <SubTitle>Puntos Críticos ("Zonas Ciegas")</SubTitle>
+                            <ClinicalNote>
+                                Existen áreas donde la superposición de estructuras óseas o cardiacas esconde lesiones. Revíselas conscientemente en este orden:
+                                <br/><strong>1. Vértices Pulmonares:</strong> Ocultos por clavículas y 1ª costilla (Ca. Pancoast, TBC).
+                                <br/><strong>2. Hilios:</strong> Ocultos por vasos grandes (Masas centrales).
+                                <br/><strong>3. Recesos Costofrénicos:</strong> Ocultos por el diafragma (Pequeños derrames).
+                                <br/><strong>4. Zona Retrocardiaca:</strong> Oculta por el corazón (Neumonías del Lóbulo Inferior Izquierdo).
+                            </ClinicalNote>
+                            <Gallery 
+                                onZoom={openZoom}
+                                images={[
+                                    { img: 'fig_2_21.jpg', figNumber: 'Fig 2.21', backText: 'VÍA AÉREA CENTRAL:\nTomografía lineal mostrando la Tráquea (columna de aire central) dividiéndose en la Carina en Bronquio Principal Derecho (más vertical) e Izquierdo (más horizontal). Observe que la vía aérea periférica NO se ve normalmente.' },
+                                    { img: 'fig_2_22.jpg', figNumber: 'Fig 2.22', backText: 'SIMETRÍA:\nCompare siempre en "Z". Vértice derecho con izquierdo, campo medio con medio, base con base. Cualquier asimetría de densidad sugiere patología (neumonía, derrame, atelectasia).' },
+                                    { img: 'fig_2_23.jpg', figNumber: 'Fig 2.23', backText: 'PUNTOS CIEGOS (PA):\nLas zonas marcadas son donde los radiólogos expertos buscan primero: Vértices (TBC), Hilios (Cáncer), Ángulos diafragmáticos (Derrame).' },
+                                    { img: 'fig_2_24.jpg', figNumber: 'Fig 2.24', backText: 'PUNTOS CIEGOS (LATERAL):\nEl espacio retroesternal debe ser negro (triángulo claro). Si está blanco, sospeche masa anterior. El espacio retrocardiaco y sobre la columna debe ser claro; si está blanco, es neumonía basal.' },
+                                    { img: 'fig_2_25.jpg', figNumber: 'Fig 2.25', backText: 'LÍMITES DIAFRAGMÁTICOS:\nEl hemidiafragma derecho suele ser 1-2 cm más alto que el izquierdo (por el hígado). En la lateral, se cruzan como tijeras. El izquierdo se pierde al tocar el corazón (silueta).' }
+                                ]}
+                            />
+                        </section>
+
+                        {/* 5. VASCULARIZACIÓN */}
+                        <section id="vascular">
+                            <SectionTitle>5. Patrón de Vascularización Normal</SectionTitle>
+                            <Paragraph>
+                                Lo que vemos como "rayas blancas" en el pulmón son arterias y venas pulmonares. Los bronquios normales no se ven (paredes muy finas). La distribución de estos vasos obedece a la gravedad (Ley de Starling).
+                            </Paragraph>
+                            <div className="bg-slate-900 p-6 rounded-xl border border-slate-800 mb-8">
+                                <h4 className="text-cyan-400 font-bold mb-4 uppercase text-sm">Los 4 Mandamientos Vasculares (Paciente de pie):</h4>
+                                <ul className="space-y-4">
+                                    <li className="flex gap-3"><span className="text-cyan-400 font-bold">1.</span> <span className="text-slate-300"><strong>Gradiente Base-Vértice:</strong> Los vasos de las bases son más numerosos y el doble de gruesos que los de los vértices (por gravedad).</span></li>
+                                    <li className="flex gap-3"><span className="text-cyan-400 font-bold">2.</span> <span className="text-slate-300"><strong>Gradiente Centro-Periferia:</strong> Los vasos son gruesos en el hilio y se adelgazan progresivamente hacia afuera.</span></li>
+                                    <li className="flex gap-3"><span className="text-cyan-400 font-bold">3.</span> <span className="text-slate-300"><strong>Periferia Limpia:</strong> En el tercio más externo del pulmón (corteza) no deben verse vasos. Si se ven líneas hasta la costilla, es patológico (Kerley).</span></li>
+                                    <li className="flex gap-3"><span className="text-cyan-400 font-bold">4.</span> <span className="text-slate-300"><strong>Hilios Definidos:</strong> Los hilios deben tener forma cóncava o de "Y". Si son convexos como una papa, es una masa o adenopatía.</span></li>
+                                </ul>
+                            </div>
+                            <Gallery 
+                                onZoom={openZoom}
+                                images={[
+                                    { img: 'fig_2_26.jpg', figNumber: 'Fig 2.26', backText: 'GRADIENTE GRAVITACIONAL:\nCompare el círculo superior (vértice) con el inferior (base). Abajo hay muchos vasos gruesos. Arriba hay pocos y finos. Si esto se invierte (arriba gruesos), es el primer signo de Insuficiencia Cardiaca (Cefalización).' },
+                                    { img: 'fig_2_27.jpg', figNumber: 'Fig 2.27', backText: 'PERIFERIA LIMPIA:\nObserve el borde externo del pulmón. Es negro homogéneo. No llegan vasos visibles. Esto es normal. Si ve líneas aquí, piense en edema intersticial.' },
+                                    { img: 'fig_2_28.jpg', figNumber: 'Fig 2.28', backText: 'AFILAMIENTO PROGRESIVO:\nComo las ramas de un árbol, las arterias se dividen y adelgazan suavemente. Un corte brusco en el calibre ("poda") sugiere hipertensión pulmonar o embolia.' },
+                                    { img: 'fig_2_29.jpg', figNumber: 'Fig 2.29', backText: 'HILIOS NORMALES:\nEs la zona donde entran arterias/bronquios y salen venas. El hilio izquierdo suele estar un poco más alto que el derecho (por la arteria pulmonar izquierda que cabalga el bronquio).' }
+                                ]}
+                            />
+                        </section>
+
+                        {/* 6. SILUETA CARDIACA */}
+                        <section id="cardio">
+                            <SectionTitle>6. Silueta Cardiomediastínica</SectionTitle>
+                            <Paragraph>
+                                En la radiografía simple no vemos las cámaras cardiacas internas, vemos sus bordes externos o "arcos". Saber qué estructura forma cada arco es vital para identificar qué cámara está crecida.
+                            </Paragraph>
+                            <InfoTable 
+                                headers={['Perfil', 'Arco', 'Estructura Anatómica']}
+                                rows={[
+                                    ['Derecho (PA)', 'Superior', 'Vena Cava Superior (recto vertical)'],
+                                    ['Derecho (PA)', 'Inferior', 'Aurícula Derecha (convexo hacia afuera)'],
+                                    ['Izquierdo (PA)', 'Superior (1º)', 'Botón Aórtico (Cayado)'],
+                                    ['Izquierdo (PA)', 'Medio (2º)', 'Tronco de la Arteria Pulmonar (cóncavo o recto)'],
+                                    ['Izquierdo (PA)', 'Inferior (3º)', 'Ventrículo Izquierdo (forma la punta del corazón)'],
+                                    ['Lateral', 'Anterior', 'Ventrículo Derecho (toca el esternón)'],
+                                    ['Lateral', 'Posterior Superior', 'Aurícula Izquierda (forma la pared posterior alta)'],
+                                    ['Lateral', 'Posterior Inferior', 'Ventrículo Izquierdo (forma la pared posterior baja)']
+                                ]}
+                            />
+                            <Gallery 
+                                onZoom={openZoom}
+                                description="Mapa anatómico de la silueta cardiaca."
+                                images={[
+                                    { img: 'fig_2_30.jpg', figNumber: 'Fig 2.30', backText: 'SILUETA GLOBAL:\nEsta es la "sombra" que proyecta el corazón. Recuerde: El VI forma la punta y el borde izquierdo bajo. La AD forma el borde derecho. El VD es anterior y central, no forma borde en la PA.' },
+                                    { img: 'fig_2_31.jpg', figNumber: 'Fig 2.31', backText: 'ARCOS EN PA:\nDerecha: Vena Cava Sup. y Aurícula Der.\nIzquierda: Botón Aórtico, Pulmonar y Ventrículo Izq.\nNota: La orejuela de la Aurícula Izquierda normalmente NO se ve. Si aparece (entre pulmonar y VI), es patológico (4º arco).' },
+                                    { img: 'fig_2_32.jpg', figNumber: 'Fig 2.32', backText: 'ARCOS EN LATERAL:\nAnterior: El Ventrículo Derecho contacta el tercio inferior del esternón.\nPosterior: Arriba la Aurícula Izquierda y abajo el Ventrículo Izquierdo. Es la mejor vista para evaluar crecimiento auricular izquierdo (comprime esófago).' }
+                                ]}
+                            />
+                        </section>
+
+                        {/* 7. MEDIDAS Y CALCULADORA */}
+                        <section id="medidas">
+                            <SectionTitle>7. Medidas Útiles y Patología Cardiaca</SectionTitle>
+                            
+                            <SubTitle>Índice Cardiotorácico (ICT)</SubTitle>
+                            <Paragraph>
+                                Es la medida más usada para estimar el tamaño cardiaco. Relaciona el diámetro transverso máximo del corazón con el diámetro interno máximo de la caja torácica.
+                                <br/><strong>Valor Normal:</strong> &le; 0.50 (50%) en adultos.
+                                <br/><strong>Limitación:</strong> Tiene baja sensibilidad pero alto valor predictivo negativo (si es normal, es raro que haya insuficiencia cardiaca severa dilatada).
+                            </Paragraph>
+                            <Gallery onZoom={openZoom} images={[{ img: 'fig_2_33.jpg', figNumber: 'Fig 2.33', backText: 'MEDICIÓN DEL ICT:\nTrace una línea vertical central en las espinosas.\nA = Distancia máxima desde la línea al borde derecho más externo.\nB = Distancia máxima desde la línea al borde izquierdo más externo.\nC = Ancho máximo del tórax (por encima del diafragma).\nICT = (A + B) / C' }]} />
+                            
+                            <ICTCalculator />
+
+                            <SubTitle>Aorta Torácica: Cambios con la Edad</SubTitle>
+                            <Paragraph>La aorta sufre cambios degenerativos comunes que no siempre indican enfermedad aguda, pero deben reportarse.</Paragraph>
+                            <Gallery 
+                                onZoom={openZoom}
+                                images={[
+                                    { img: 'fig_2_34.jpg', figNumber: 'Fig 2.34', backText: 'ELONGACIÓN AÓRTICA:\nCon la edad y la hipertensión, la aorta se "alarga" y se tortuosa. El botón aórtico sube hacia la clavícula y la aorta descendente se curvea hacia afuera.' },
+                                    { img: 'fig_2_35.jpg', figNumber: 'Fig 2.35', backText: 'ENSANCHAMIENTO AÓRTICO:\nEl mediastino superior se ve ancho. Puede ser por ectasia simple (vejez) o aneurisma verdadero. Si mide >4cm el botón, sospeche dilatación.' },
+                                    { img: 'fig_2_36.jpg', figNumber: 'Fig 2.36', backText: 'CALCIFICACIÓN (ATEROMATOSIS):\nSe ve como una línea blanca curva en el botón aórtico ("cáscara de huevo"). Indica aterosclerosis avanzada. Útil para localizar la posición de la aorta.' }
+                                ]}
+                            />
+
+                            <SubTitle>Signos Específicos de Crecimiento de Cavidades</SubTitle>
+                            <ClinicalNote title="Claves Diagnósticas Rápidas">
+                                <strong>Ventrículo Izquierdo (VI):</strong> Crece hacia abajo y a la izquierda. Hunde el diafragma ("ápex sumergido"). Causa común: HTA, Insuf. Aórtica.<br/>
+                                <strong>Ventrículo Derecho (VD):</strong> Crece hacia adelante y arriba. Levanta la punta del corazón ("zapato sueco"). Ocupa el espacio retroesternal en la lateral.<br/>
+                                <strong>Aurícula Izquierda (AI):</strong> Crece hacia atrás y derecha. Signos: Doble contorno derecho, elevación del bronquio izquierdo, 4º arco.
+                            </ClinicalNote>
+                            <Gallery 
+                                onZoom={openZoom}
+                                description="Cómo identificar qué cámara está dilatada."
+                                images={[
+                                    { img: 'fig_2_37.jpg', figNumber: 'Fig 2.37', backText: 'CRECIMIENTO AURÍCULA DERECHA:\nEl borde inferior derecho se abomba hacia el pulmón. Distancia línea media a borde > 5.5 cm. Causas: Ebstein, Tricúspide, Hipertensión Pulmonar.' },
+                                    { img: 'fig_2_38.jpg', figNumber: 'Fig 2.38', backText: 'ESQUEMA CRECIMIENTO AD:\nNote cómo la convexidad derecha aumenta significativamente, desplazando el borde hacia la pared torácica.' },
+                                    { img: 'fig_2_39.jpg', figNumber: 'Fig 2.39', backText: 'CRECIMIENTO TRONCO PULMONAR:\nEl arco medio izquierdo (pulmonar) se vuelve convexo y prominente. Signo de Hipertensión Pulmonar o cortocircuitos Izq-Der.' },
+                                    { img: 'fig_2_40.jpg', figNumber: 'Fig 2.40', backText: 'MEDIDA ART. PULMONAR DERECHA:\nSe mide la arteria interlobar descendente. Normal: hasta 16mm en mujeres y 17mm en hombres. Si es mayor = HTP.' },
+                                    { img: 'fig_2_41.jpg', figNumber: 'Fig 2.41', backText: 'MEDIDA ART. PULMONAR IZQUIERDA:\nDifícil de medir en PA, se evalúa mejor en lateral (arco sobre el bronquio). > 18mm es patológico.' },
+                                    { img: 'fig_2_42.jpg', figNumber: 'Fig 2.42', backText: 'CRECIMIENTO AURÍCULA IZQUIERDA (4º ARCO):\nAparece un "bulto" extra en el perfil izquierdo, justo debajo de la pulmonar. Es la orejuela izquierda dilatada. Típico de Estenosis Mitral.' },
+                                    { img: 'fig_2_43.jpg', figNumber: 'Fig 2.43', backText: 'COMPRESIÓN ESOFÁGICA (AI):\nEn un esofagograma lateral, la AI dilatada comprime y desplaza el esófago hacia atrás. Es el signo más sensible de crecimiento de AI.' },
+                                    { img: 'fig_2_44.jpg', figNumber: 'Fig 2.44', backText: 'CRECIMIENTO VENTRÍCULO IZQUIERDO (PA):\nEl corazón crece hacia la izquierda y hacia abajo. El ápex parece "enterrarse" en el diafragma. Típico de Insuficiencia Aórtica o HTA.' },
+                                    { img: 'fig_2_45.jpg', figNumber: 'Fig 2.45', backText: 'SIGNO DE HOFFMAN-RIGLER (VI LATERAL):\nMedida para confirmar crecimiento VI en lateral. Se mide desde la vena cava inferior hacia atrás (2cm arriba del cruce). Si el ventrículo pasa ese punto, está dilatado.' },
+                                    { img: 'fig_2_46.jpg', figNumber: 'Fig 2.46', backText: 'CRECIMIENTO VENTRÍCULO DERECHO:\nEn la lateral, el VD llena el espacio retroesternal (que debería ser negro). Si ocupa más del tercio inferior del esternón, hay dilatación de VD.' },
+                                    { img: 'fig_2_47.jpg', figNumber: 'Fig 2.47', backText: 'PEDÍCULO VASCULAR:\nAncho del mediastino superior vascular. Refleja el volumen sanguíneo sistémico. Si está ancho (>58mm) sugiere sobrecarga de volumen o falla renal.' }
+                                ]}
+                            />
+                        </section>
+
+                        {/* 8. ANATOMÍA SUBSEGMENTARIA */}
+                        <section id="subsegmentaria">
+                            <SectionTitle>8. Fisiología y Anatomía Subsegmentaria</SectionTitle>
+                            <Paragraph>
+                                Para entender la neumonía y el edema, debemos bajar al nivel microscópico. El pulmón se organiza en unidades funcionales.
+                            </Paragraph>
+                            <Gallery 
+                                onZoom={openZoom}
+                                images={[
+                                    { img: 'fig_2_48.jpg', figNumber: 'Fig 2.48', backText: 'EL ACINO:\nEs la unidad funcional (donde ocurre el intercambio de gas). Contiene bronquiolos respiratorios y alvéolos. Cuando se llenan de líquido, forman nódulos algodonosos de 6-10mm (nódulos acinares).' },
+                                    { img: 'fig_2_49.jpg', figNumber: 'Fig 2.49', backText: 'POROS DE KOHN:\nSon agujeros microscópicos entre alvéolos vecinos. Permiten que la neumonía "camine" lateralmente de un alvéolo a otro, cruzando segmentos pero respetando cisuras. Esto explica la consolidación lobar.' },
+                                    { img: 'fig_2_50.jpg', figNumber: 'Fig 2.50', backText: 'LOBULILLO SECUNDARIO:\nUnidad anatómica rodeada por tabiques (septos). Contiene 3-5 acinos. Cuando los septos se llenan de líquido, se vuelven visibles como Líneas de Kerley.' },
+                                    { img: 'fig_2_51.jpg', figNumber: 'Fig 2.51', backText: 'LÍNEAS DE KERLEY:\nSon los septos interlobulillares engrosados por edema linfático. Las Líneas B son cortas, horizontales y basales (en escalera). Las A son largas y apicales.' },
+                                    { img: 'fig_2_52.jpg', figNumber: 'Fig 2.52', backText: 'INTERSTICIO PULMONAR:\nEs el "esqueleto" de tejido conectivo que sostiene el pulmón. Se divide en Axial (rodea bronquios/vasos) y Periférico (subpleural). El edema viaja por aquí.' },
+                                    { img: 'fig_2_53.jpg', figNumber: 'Fig 2.53', backText: 'PARED ALVEOLAR:\nTiene un lado fino (intercambio gas) y un lado grueso (soporte/líquido). El edema se acumula primero en el lado grueso antes de inundar el alvéolo.' },
+                                    { img: 'fig_2_54.jpg', figNumber: 'Fig 2.54', backText: 'HISTOLOGÍA VASCULAR:\nArterias elásticas (centrales) vs musculares (periféricas). Las musculares pueden contraerse fuertemente en hipoxia, redistribuyendo el flujo.' },
+                                    { img: 'fig_2_55.jpg', figNumber: 'Fig 2.55', backText: 'DINÁMICA DEL EDEMA:\nEl líquido sale del capilar al intersticio. Los linfáticos lo drenan. Si el sistema se satura, el líquido se acumula en los manguitos peribronquiales.' },
+                                    { img: 'fig_2_56.jpg', figNumber: 'Fig 2.56', backText: 'MANGUITOS PERIBRONQUIALES:\nEl edema engruesa la pared bronquial. De frente, un bronquio se ve como un anillo grueso ("donas"). Signo temprano de falla cardiaca.' },
+                                    { img: 'fig_2_57.jpg', figNumber: 'Fig 2.57', backText: 'LEY DE STARLING:\nExplica por qué el líquido se queda dentro de los vasos. Equilibrio entre presión hidrostática (empuja fuera) y oncótica (retiene).' },
+                                    { img: 'fig_2_58.jpg', figNumber: 'Fig 2.58', backText: 'FLUJO ERECTO (NORMAL):\nPor gravedad, la sangre cae a las bases. Los vértices están poco perfundidos (presión alveolar > presión venosa).' },
+                                    { img: 'fig_2_59.jpg', figNumber: 'Fig 2.59', backText: 'FLUJO INVERTIDO:\nSi ponemos al paciente de cabeza (o en falla cardiaca), la presión venosa sube y abre los capilares apicales. Los vasos superiores se ven gruesos.' },
+                                    { img: 'fig_2_60.jpg', figNumber: 'Fig 2.60', backText: 'GRADIENTES DE PRESIÓN:\nEsquema de presiones normales en el circuito menor. Útil para entender hipertensión pulmonar.' }
+                                ]}
+                            />
+                        </section>
+
+                        {/* 9. PATOLOGÍA: OPACIDADES */}
+                        <section id="patologia1">
+                            <SectionTitle>9. Patología: Opacidades Pulmonares</SectionTitle>
+                            
+                            <SubTitle>A. Infiltrados Alveolares (Condensación)</SubTitle>
+                            <Paragraph>
+                                Ocurren cuando el aire de los alvéolos es reemplazado por líquido. El líquido puede ser:
+                                <br/>- <strong>Pus:</strong> Neumonía.
+                                <br/>- <strong>Agua:</strong> Edema Agudo de Pulmón.
+                                <br/>- <strong>Sangre:</strong> Hemorragia alveolar / Contusión.
+                                <br/>- <strong>Células:</strong> Cáncer bronquioloalveolar.
+                            </Paragraph>
+                            <div className="bg-slate-900 p-4 border-l-4 border-cyan-500 mb-6">
+                                <h4 className="text-white font-bold mb-2">La Tríada del Patrón Alveolar:</h4>
+                                <ul className="list-disc pl-5 text-slate-300 space-y-1">
+                                    <li><strong>Bordes Mal Definidos:</strong> Como una nube, se difumina con el pulmón sano (excepto si toca una cisura).</li>
+                                    <li><strong>Coalescencia:</strong> Los nódulos acinares se fusionan formando manchas grandes.</li>
+                                    <li><strong>Broncograma Aéreo:</strong> Tubos negros (bronquios con aire) visibles dentro de la mancha blanca. Es patognomónico de lesión alveolar.</li>
+                                </ul>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                                <InfoTable 
+                                    headers={['Causas Agudas Frecuentes', 'Causas Agudas Raras']}
+                                    rows={[
+                                        ['Neumonía bacteriana', 'Hemorragia alveolar'],
+                                        ['Edema Pulmonar Cardiogénico', 'Linfoma'],
+                                        ['Broncoaspiración', 'Neumonitis por radiación']
+                                    ]}
+                                />
+                                <InfoTable 
+                                    headers={['Causas Crónicas Frecuentes', 'Causas Crónicas Raras']}
+                                    rows={[
+                                        ['Tuberculosis', 'Proteinosis Alveolar'],
+                                        ['Micosis (Hongos)', 'Sarcoidosis (forma alveolar)'],
+                                        ['Ca. Bronquioloalveolar', 'Wegener']
+                                    ]}
+                                />
+                            </div>
+
+                            <Gallery 
+                                onZoom={openZoom}
+                                images={[
+                                    { img: 'fig_2_61.jpg', figNumber: 'Fig 2.61', backText: 'ESQUEMA ALVEOLAR:\nRepresentación gráfica de la coalescencia. Los acinos individuales se llenan y se fusionan. Note los bronquios negros preservados en el interior (Broncograma).' },
+                                    { img: 'fig_2_62.jpg', figNumber: 'Fig 2.62', backText: 'NEUMONÍA LOBAR:\nEjemplo real. Opacidad densa, algodonosa, con bordes difusos. Si se fija bien, verá líneas negras ramificadas dentro de lo blanco: Broncograma aéreo positivo.' }
+                                ]}
+                            />
+
+                            <SubTitle>B. Infiltrados Intersticiales</SubTitle>
+                            <Paragraph>
+                                Aquí el problema no es el aire, sino el "andamio" del pulmón. El tejido conectivo se engrosa por líquido, fibrosis o células. La imagen es más "sucia", nítida o reticulada, pero se puede ver a través de ella.
+                            </Paragraph>
+                            <InfoTable 
+                                headers={['Patrón', 'Descripción Visual', 'Etiología Clásica']}
+                                rows={[
+                                    ['Lineal (Reticular)', 'Red de líneas finas entrecruzadas. Incluye Líneas de Kerley.', 'Edema Pulmonar (fase inicial), Fibrosis Pulmonar, Linfangitis.'],
+                                    ['Nodular (Miliar)', 'Incontables puntitos blancos < 3mm dispersos como semillas.', 'TBC Miliar, Metástasis tiroides/melanoma, Silicosis.'],
+                                    ['Reticulonodular', 'Mezcla de red y puntos. Aspecto de "vidrio sucio".', 'Sarcoidosis, Histiocitosis, Linfagitis carcinomatosa.']
+                                ]}
+                            />
+                            <Gallery 
+                                onZoom={openZoom}
+                                images={[
+                                    { img: 'fig_2_63.jpg', figNumber: 'Fig 2.63', backText: 'PATRONES INTERSTICIALES:\nComparación esquemática. Izq: Normal. Centro: Puntos (Nodular). Der: Red (Reticular).' },
+                                    { img: 'fig_2_64.jpg', figNumber: 'Fig 2.64', backText: 'PATRÓN LINEAL/RETICULAR:\nNote la trama prominente como una malla fina. Típico de la fibrosis pulmonar idiopática o asbestosis.' },
+                                    { img: 'fig_2_65.jpg', figNumber: 'Fig 2.65', backText: 'PATRÓN MILIAR (NODULAR):\n"Tormenta de nieve". Miles de nódulos milimétricos. Clásico de Tuberculosis diseminada por sangre.' },
+                                    { img: 'fig_2_66.jpg', figNumber: 'Fig 2.66', backText: 'PATRÓN RETICULONODULAR:\nCombinación compleja. Se ven líneas engrosadas y nódulos superpuestos. Común en enfermedades granulomatosas.' }
+                                ]}
+                            />
+
+                            <SubTitle>C. Nódulos y Masas Solitarias</SubTitle>
+                            <Paragraph>La diferencia es el tamaño: Nódulo &lt; 3 cm. Masa &gt; 3 cm (una masa siempre es maligna hasta demostrar lo contrario).</Paragraph>
+                            <InfoTable 
+                                headers={['Característica', 'Sugiere Benignidad (Granuloma)', 'Sugiere Malignidad (Cáncer)']}
+                                rows={[
+                                    ['Calcificación', 'Central sólida, Laminar (capas), "Palomita de maíz" (Hamartoma).', 'Excéntrica, Puntiforme, Amorfa o Ausente.'],
+                                    ['Bordes', 'Lisos, netos, bien definidos.', 'Espiculados, irregulares, "Corona radiada".'],
+                                    ['Crecimiento', 'Estable > 2 años (No crece).', 'Duplicación rápida (meses).'],
+                                    ['Cavitación', 'Pared fina y lisa.', 'Pared gruesa e irregular.']
+                                ]}
+                            />
+                            <Gallery 
+                                onZoom={openZoom}
+                                images={[
+                                    { img: 'fig_2_67.jpg', figNumber: 'Fig 2.67', backText: 'NÓDULO PULMONAR SOLITARIO:\nOpacidad redondeada pequeña. Importante buscar calcificaciones centrales para confirmar benignidad (granuloma antiguo).' },
+                                    { img: 'fig_2_68.jpg', figNumber: 'Fig 2.68', backText: 'MASA PULMONAR:\nLesión grande (>3cm). Bordes irregulares. Alta sospecha de Carcinoma Broncogénico. Requiere TAC inmediato.' }
+                                ]}
+                            />
+
+                            <SubTitle>D. Otras Opacidades (Pleura y Atelectasia)</SubTitle>
+                            <Gallery 
+                                onZoom={openZoom}
+                                images={[
+                                    { img: 'fig_2_69.jpg', figNumber: 'Fig 2.69', backText: 'DERRAME PLEURAL CLÁSICO:\nOpacidad basal homogénea que borra el ángulo costofrénico y forma una curva cóncava hacia arriba (Menisco de Damasou). Desplaza el corazón al lado contrario (empuja).' },
+                                    { img: 'fig_2_70.jpg', figNumber: 'Fig 2.70', backText: 'DERRAME SUBPULMONAR DERECHO:\nSimula una elevación del diafragma. La "cúpula" se ve más lateralizada de lo normal. Si se hace una placa en decúbito lateral, el líquido corre.' },
+                                    { img: 'fig_2_71.jpg', figNumber: 'Fig 2.71', backText: 'DERRAME SUBPULMONAR IZQUIERDO:\nSigno clave: Aumento de la distancia entre la burbuja de aire del estómago y el "borde pulmonar" inferior (> 1 cm).' },
+                                    { img: 'fig_2_72.jpg', figNumber: 'Fig 2.72', backText: 'ATELECTASIA (COLAPSO):\nPérdida de volumen. Opacidad triangular que TRACCIONA (jala) estructuras hacia ella (tráquea, corazón, diafragma). Lo opuesto al derrame.' },
+                                    { img: 'fig_2_73.jpg', figNumber: 'Fig 2.73', backText: 'ATELECTASIAS DERECHAS:\nSup: Triángulo apical y traquea desviada.\nMedia: Borra borde cardiaco.\nInf: Borra diafragma y baja el hilio.' },
+                                    { img: 'fig_2_74.jpg', figNumber: 'Fig 2.74', backText: 'ATELECTASIAS IZQUIERDAS:\nSup: Opacidad difusa anterior ("Velo").\nInf: Triángulo retrocardiaco que se esconde detrás del corazón.' }
+                                ]}
+                            />
+                        </section>
+
+                        {/* 10. PATOLOGÍA: HIPERTRANSPARENCIA */}
+                        <section id="patologia2">
+                            <SectionTitle>10. Alteraciones que Aumentan la Transparencia</SectionTitle>
+                            <Paragraph>
+                                Zonas "demasiado negras". Indican exceso de aire (atrapamiento, destrucción) o falta de sangre (embolia).
+                            </Paragraph>
+                            <ClinicalNote title="Neumotórax vs Bula">
+                                <strong>Neumotórax:</strong> Aire en la pleura. Se ve la línea de la pleura visceral blanca separando el pulmón colapsado del aire pleural. NO hay vasos más allá de esa línea.<br/>
+                                <strong>Bula:</strong> Bolsa de aire dentro del pulmón. Pared muy fina (&lt;1mm).
+                            </ClinicalNote>
+                            <Gallery 
+                                onZoom={openZoom}
+                                images={[
+                                    { img: 'fig_2_75.jpg', figNumber: 'Fig 2.75', backText: 'NEUMOTÓRAX:\nBusque la fina línea blanca de la pleura visceral paralela a la pared torácica. Por fuera de ella es negro absoluto (sin vasos).' },
+                                    { img: 'fig_2_76.jpg', figNumber: 'Fig 2.76', backText: 'BULA ENFISEMATOSA:\nEspacio aéreo quístico de pared fina. Comprime el parénquima sano adyacente. Común en fumadores.' },
+                                    { img: 'fig_2_77.jpg', figNumber: 'Fig 2.77', backText: 'NEUMATOCELE:\nSimilar a la bula pero agudo, post-infeccioso (típico de Neumonía por Staph aureus en niños). Suele resolver solo.' },
+                                    { img: 'fig_2_78.jpg', figNumber: 'Fig 2.78', backText: 'CAVITACIÓN:\nAgujero dentro de una masa o consolidación. Pared GRUESA e irregular. Típico de TBC activa (caverna), Absceso o Cáncer necrosado.' },
+                                    { img: 'fig_2_79.jpg', figNumber: 'Fig 2.79', backText: 'BRONQUIECTASIAS:\nBronquios dilatados permanentemente. Se ven como "rieles de tren" o quistes agrupados ("panal") con niveles hidroaéreos.' },
+                                    { img: 'fig_2_80.jpg', figNumber: 'Fig 2.80', backText: 'ATRAPAMIENTO AÉREO (EPOC):\nPulmones hiperinsuflados y negros. Diafragmas aplanados (rectos). Corazón en "gota". Espacio intercostal aumentado.' },
+                                    { img: 'fig_2_81.jpg', figNumber: 'Fig 2.81', backText: 'SÍNDROME DE SWYER-JAMES:\nPulmón hiperlúcido unilateral. Es un pulmón pequeño y negro (hipoplásico) secuela de bronquiolitis infantil.' }
+                                ]}
+                            />
+                        </section>
+
+                         {/* 11. PATOLOGÍA: VASCULAR */}
+                         <section id="patologia3">
+                            <SectionTitle>11. Alteraciones Vasculares: Hemodinamia</SectionTitle>
+                            <Paragraph>
+                                La radiografía de tórax es un barómetro de la presión venosa pulmonar. Es fundamental para el manejo de la Insuficiencia Cardiaca Congestiva (ICC).
+                            </Paragraph>
+                            
+                            <SubTitle>Estadios de la Falla Cardiaca Izquierda</SubTitle>
+                            <InfoTable 
+                                headers={['Estadio', 'Presión Capilar (PCP)', 'Signo Radiológico Clave']}
+                                rows={[
+                                    ['I. Redistribución', '12-17 mmHg', 'CEFALIZACIÓN: Vasos apicales se dilatan y se igualan a los basales ("Astas de ciervo").'],
+                                    ['II. Edema Intersticial', '18-25 mmHg', 'LÍNEAS B DE KERLEY + Hilios Borrosos + Manguitos peribronquiales. El líquido sale al intersticio.'],
+                                    ['III. Edema Alveolar', '> 25 mmHg', 'ALAS DE MARIPOSA: Opacidades algodonosas centrales. Derrame pleural.']
+                                ]}
+                            />
+                            
+                            <Gallery 
+                                onZoom={openZoom}
+                                images={[
+                                    { img: 'fig_2_82.jpg', figNumber: 'Fig 2.82', backText: 'SIGNO DE WESTERMARK (TEP):\nOligoemia focal. Una zona del pulmón se ve muy negra (sin vasos) porque un trombo tapó la arteria. Signo raro pero específico de Embolia Pulmonar.' },
+                                    { img: 'fig_2_83.jpg', figNumber: 'Fig 2.83', backText: 'CEFALIZACIÓN DE FLUJO:\nPaciente de pie. Los vasos de los vértices son tan gruesos como los de las bases. Signo precoz de hipertensión venosa pulmonar.' },
+                                    { img: 'fig_2_84.jpg', figNumber: 'Fig 2.84', backText: 'HILIOS BORROSOS:\nEl edema intersticial difumina los bordes de los vasos hiliares. El hilio pierde su nitidez y parece una "nube".' },
+                                    { img: 'fig_2_85.jpg', figNumber: 'Fig 2.85', backText: 'LÍNEAS B DE KERLEY:\nLíneas cortas (1-2cm), horizontales, periféricas, en bases. Representan edema en los septos interlobulillares. Patognomónico de edema pulmonar o linfangitis.' },
+                                    { img: 'fig_2_86.jpg', figNumber: 'Fig 2.86', backText: 'DERRAME PLEURAL EN ICC:\nSuele ser bilateral. Si es unilateral, es más común en el lado derecho. Si solo hay izquierdo, sospeche otra causa.' },
+                                    { img: 'fig_2_87.jpg', figNumber: 'Fig 2.87', backText: 'PLÉTORA (HIPERFLUJO):\nTodos los vasos (centrales y periféricos) están gordos. Típico de cortocircuitos de Izquierda a Derecha (CIA, CIV, Ductus).' },
+                                    { img: 'fig_2_88.jpg', figNumber: 'Fig 2.88', backText: 'HIPERTENSIÓN PRECAPILAR:\nArterias centrales enormes (aneurismáticas) pero periferia "podada" (sin vasos). Imagen en "árbol de invierno". Causa: EPOC, HTP primaria.' }
+                                ]}
+                            />
+                        </section>
+
+                        {/* 12. MEDIASTINO */}
+                        <section id="mediastino">
+                            <SectionTitle>12. Masas del Mediastino</SectionTitle>
+                            <Paragraph>
+                                El mediastino es complejo. Para diagnosticar una masa, primero hay que ubicarla en uno de los 3 compartimentos usando la proyección Lateral.
+                            </Paragraph>
+                            <InfoTable 
+                                headers={['Compartimento', 'Límites', 'Nemotecnia "4T" (Anterior) y otras']}
+                                rows={[
+                                    ['Anterior', 'Desde el Esternón hasta el borde anterior del Corazón', 'Las 4 T: 1.Timo (Timoma), 2.Teratoma, 3.Tiroides (Bocio), 4."Terrible" Linfoma.'],
+                                    ['Medio', 'Donde está el Corazón, Tráquea y Esófago', 'Adenopatías (lo más común), Quistes broncogénicos, Aneurismas aórticos, Hernia hiatal.'],
+                                    ['Posterior', 'Detrás del corazón (Goteras paravertebrales)', 'Tumores Neurogénicos (Schwannoma, Neuroblastoma).']
+                                ]}
+                            />
+                            <Gallery 
+                                onZoom={openZoom}
+                                images={[
+                                    { img: 'fig_2_89.jpg', figNumber: 'Fig 2.89', backText: 'DIVISIONES DEL MEDIASTINO:\nEsquema lateral. Anterior (prevascular), Medio (visceral), Posterior (paravertebral). La ubicación predice la histología.' },
+                                    { img: 'fig_2_90.jpg', figNumber: 'Fig 2.90', backText: 'MASA MEDIASTINO ANTERIOR:\nOcupa el espacio retroesternal (que debería ser negro). Borra la silueta cardiaca anterior. Dx probables: Timoma o Linfoma.' },
+                                    { img: 'fig_2_91.jpg', figNumber: 'Fig 2.91', backText: 'MASA MEDIASTINO MEDIO:\nAdenopatías hiliares o paratraqueales. Ensancha el mediastino superior en la PA. Común en Linfoma o Sarcoidosis.' },
+                                    { img: 'fig_2_92.jpg', figNumber: 'Fig 2.92', backText: 'MASA MEDIASTINO POSTERIOR:\nOpacidad redondeada superpuesta a la columna vertebral. Puede erosionar costillas o vértebras. Casi siempre es un tumor de nervio (Neurogénico).' }
+                                ]}
+                            />
+                        </section>
+
+                        <div className="h-32 text-center text-slate-600 flex flex-col items-center justify-center mt-20 border-t border-slate-900/50">
+                            <p className="font-semibold text-slate-500">Radiología Básica - Capítulo Tórax Normal</p>
+                            <p className="text-xs mt-2 opacity-50">Herramienta Educativa Pro</p>
+                        </div>
+                        
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

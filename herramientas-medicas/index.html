@@ -5,62 +5,120 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Herramientas Dr. Anónimo</title>
     <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
     <div id="login-screen">
         <div class="login-box">
-            <h2>Acceso Médico</h2>
+            <div class="login-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                </svg>
+            </div>
+            <h2>Acceso Profesional</h2>
             <p>Herramientas Dr. Anónimo</p>
-            <input type="password" id="password-input" placeholder="Ingrese código de acceso">
-            <button onclick="checkPassword()">Entrar</button>
+            <input type="password" id="password-input" placeholder="Código de acceso">
+            <button onclick="checkPassword()">Ingresar</button>
             <p id="error-msg" class="hidden">Código incorrecto</p>
         </div>
     </div>
 
     <div id="main-app" class="hidden">
+        
         <header>
-            <h1>Herramientas Dr. Anónimo</h1>
+            <div class="header-content">
+                <div class="brand">
+                    <h1>Dr. Anónimo</h1>
+                    <span class="subtitle">Suite de Herramientas Médicas</span>
+                </div>
+                <button class="menu-btn" onclick="toggleMenu()" aria-label="Menú">
+                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
+            </div>
+
             <div class="search-container">
-                <input type="text" id="search-bar" placeholder="Buscar herramienta, diagnóstico, calculadora..." onkeyup="filterTools()">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="search-bar" placeholder="Buscar guía, algoritmo o calculadora..." onkeyup="filterTools()">
             </div>
         </header>
+
+        <div id="sidebar-overlay" onclick="toggleMenu()"></div>
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <h2>Navegación</h2>
+                <button class="close-btn" onclick="toggleMenu()">&times;</button>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-group">
+                    <h3>Cardiología</h3>
+                    <a href="hta-esc-2024.html">HTA ESC 2024</a>
+                </div>
+                <div class="nav-group">
+                    <h3>Endocrinología</h3>
+                    <a href="ada-2025.html">Diabetes ADA 2025</a>
+                </div>
+                <div class="nav-group">
+                    <h3>Imagenología</h3>
+                    <a href="atlas-torax.html">Atlas Rx Tórax</a>
+                </div>
+                <div class="nav-group logout-group">
+                    <a href="#" onclick="logout()" class="logout-btn">Cerrar Sesión</a>
+                </div>
+            </nav>
+        </aside>
 
         <main>
             <div class="tools-grid" id="tools-container">
                 
-                <div class="tool-card" onclick="alert('Esta herramienta se construirá próximamente')">
-                    <h3>Algoritmo de Sepsis</h3>
-                    <p class="tag">Diagnóstico</p>
-                    <p class="desc">Criterios qSOFA y SOFA para identificación temprana.</p>
-                </div>
-
-                <div class="tool-card" onclick="alert('Esta herramienta se construirá próximamente')">
-                    <h3>Calculadora de Dosis Pediátrica</h3>
-                    <p class="tag">Tratamiento</p>
-                    <p class="desc">Ajuste de peso y dosis por kg.</p>
-                </div>
-
                 <div class="tool-card" onclick="window.location.href='hta-esc-2024.html'">
-                    <img src="img/heart.png" alt="Icono Corazón" class="tool-icon"> 
-                    
-                    <h3>Manejo HTA (ESC 2024)</h3>
-                    <p class="tag">Guía Interactiva</p>
-                    <p class="desc">Clasificación, tratamiento y calculadora de riesgo CV.</p>
+                    <div class="icon-container icon-red">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20.42 4.82A5.23 5.23 0 0 0 16.5 3 5.37 5.37 0 0 0 12 5.58 5.37 5.37 0 0 0 7.5 3a5.23 5.23 0 0 0-3.92 1.82c-2.92 3.34-2.68 8.61 2.82 13.42l.5.46L12 24l5.1-5.3.5-.46c5.5-4.81 5.74-10.08 2.82-13.42z"></path>
+                            <path d="M12 10v4"></path><path d="M10 12h4"></path>
+                        </svg>
+                    </div>
+                    <div class="card-content">
+                        <h3>HTA ESC 2024</h3>
+                        <p class="tag">Cardiología</p>
+                        <p class="desc">Algoritmo de manejo, clasificación y riesgo cardiovascular.</p>
+                    </div>
                 </div>
 
-		<div class="tool-card" onclick="window.location.href='ada-2025.html'">
-                    <img src="img/diabetes.png" alt="Icono Diabetes" class="tool-icon">
-                    
-                    <h3>ADA Standards 2025</h3>
-                    <p class="tag">Guía Interactiva</p>
-                    <p class="desc">Novedades, Algoritmo T2D, Metas y Calculadora de Diagnóstico.</p>
+                <div class="tool-card" onclick="window.location.href='ada-2025.html'">
+                    <div class="icon-container icon-blue">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"></path>
+                            <path d="M12 7v5l3 3"></path>
+                        </svg>
+                    </div>
+                    <div class="card-content">
+                        <h3>Diabetes ADA 2025</h3>
+                        <p class="tag">Endocrino</p>
+                        <p class="desc">Guía interactiva, metas de control y farmacoterapia.</p>
+                    </div>
                 </div>
+
+                <div class="tool-card" onclick="window.location.href='atlas-torax.html'">
+                    <div class="icon-container icon-cyan">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect>
+                            <line x1="12" y1="2" x2="12" y2="22"></line>
+                            <path d="M2 12h20"></path>
+                        </svg>
+                    </div>
+                    <div class="card-content">
+                        <h3>Atlas Rx Tórax</h3>
+                        <p class="tag">Imagenología</p>
+                        <p class="desc">Visor anatómico, patrones de enfermedad y modo dibujo.</p>
+                    </div>
+                </div>
+
             </div>
         </main>
 
         <footer>
-            <p>&copy; 2025 Herramientas Dr. Anónimo - Uso exclusivo profesional</p>
+            <p>Herramientas Dr. Anónimo &copy; 2025</p>
         </footer>
     </div>
 
