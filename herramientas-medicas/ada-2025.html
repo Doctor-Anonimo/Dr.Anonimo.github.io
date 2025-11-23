@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>ADA 2025: Resumen Interactivo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
+        .gradient-text {
+            background: linear-gradient(to right, #2563EB, #06B6D4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+        
+        /* Efecto Flip Card */
+        .flip-card { background-color: transparent; perspective: 1000px; height: 220px; cursor: pointer; }
+        .flip-card-inner {
+            position: relative; width: 100%; height: 100%; text-align: center;
+            transition: transform 0.6s; transform-style: preserve-3d;
+        }
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card-front, .flip-card-back {
+            position: absolute; width: 100%; height: 100%;
+            -webkit-backface-visibility: hidden; backface-visibility: hidden;
+            border-radius: 0.75rem; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .flip-card-front { background-color: white; border: 1px solid #e2e8f0; }
+        .flip-card-back { color: white; transform: rotateY(180deg); }
+
+        /* Animaciones */
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Scrollbar personalizado */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="text-slate-800">
+
+<nav class="bg-white sticky top-0 z-50 border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-600 text-3xl">monitor_heart</span>
+                <h1 class="text-xl font-bold text-slate-900 tracking-tight">ADA <span class="text-blue-600">2025</span> Standards</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="index.html" class="text-sm font-medium text-slate-500 hover:text-blue-600 flex items-center gap-1">
+                    <span class="material-symbols-outlined text-lg">arrow_back</span> Inicio
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="relative bg-slate-50 overflow-hidden border-b border-slate-200">
+    <div class="max-w-7xl mx-auto">
+        <div class="relative z-10 pb-8 bg-slate-50 sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
+            <main class="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
+                <div class="sm:text-center lg:text-left">
+                    <span class="inline-block py-1 px-3 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold tracking-wide uppercase mb-4">Actualizado 2025</span>
+                    <h1 class="text-4xl tracking-tight font-extrabold text-slate-900 sm:text-5xl md:text-6xl">
+                        <span class="block xl:inline">Standards of Care</span>
+                        <span class="block gradient-text">Diabetes 2025</span>
+                    </h1>
+                    <p class="mt-3 text-base text-slate-500 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
+                        Herramienta interactiva basada en las guías ADA 2025. Enfoque en salud CKM (Cardio-Renal-Metabólica), manejo de peso y tecnología.
+                    </p>
+                    <div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start gap-3">
+                        <a href="#algoritmo" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg transition-all shadow-lg shadow-blue-600/30">
+                            Ver Algoritmo T2D
+                        </a>
+                        <a href="#metas" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 md:py-4 md:text-lg transition-all">
+                            Metas Clínicas
+                        </a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <div class="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2 bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+        <span class="material-symbols-outlined text-blue-200" style="font-size: 300px; opacity: 0.5;">ecg_heart</span>
+    </div>
+</div>
+
+<section class="py-12 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-extrabold text-slate-900">Puntos Clave 2025</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
+                    <span class="material-symbols-outlined text-red-600 text-2xl">cardiology</span>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 mb-2">Salud CKM</h3>
+                <p class="text-slate-600 text-sm">Nuevo marco Cardio-Renal-Metabólico. Uso de SGLT2i/GLP-1 para protección de órganos independiente de la A1C.</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                <div class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-4">
+                    <span class="material-symbols-outlined text-emerald-600 text-2xl">fitness_center</span>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 mb-2">Peso y Músculo</h3>
+                <p class="text-slate-600 text-sm">Objetivo de pérdida de peso 10-15%. Énfasis crítico en prevenir sarcopenia mediante ejercicios de fuerza.</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                    <span class="material-symbols-outlined text-blue-600 text-2xl">biotech</span>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 mb-2">Screening T1D</h3>
+                <p class="text-slate-600 text-sm">Recomendación de autoanticuerpos en familiares. Uso de Teplizumab (Stage 2) para retrasar inicio.</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                <div class="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mb-4">
+                    <span class="material-symbols-outlined text-amber-600 text-2xl">warning</span>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 mb-2">Cannabis y DKA</h3>
+                <p class="text-slate-600 text-sm">Advertencia contra el uso de cannabis por riesgo aumentado de cetoacidosis e hiperemesis.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-16 bg-slate-50 border-t border-slate-200" id="diagnostico">
+    <div class="max-w-4xl mx-auto px-4">
+        <div class="flex flex-col md:flex-row gap-8">
+            <div class="flex-1 bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+                <h3 class="font-bold text-lg mb-4 flex items-center gap-2 text-slate-800">
+                    <span class="material-symbols-outlined text-blue-600">calculate</span>
+                    Calculadora Diagnóstica
+                </h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Hemoglobina A1C (%)</label>
+                        <input type="number" id="a1cInput" step="0.1" placeholder="Ej: 6.0" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" oninput="checkDiagnosis()">
+                    </div>
+                    <div class="text-center text-xs text-slate-400">- O -</div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Glucosa en Ayunas (mg/dL)</label>
+                        <input type="number" id="fpgInput" placeholder="Ej: 110" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none" oninput="checkDiagnosis()">
+                    </div>
+                    <div id="diagnosisResult" class="mt-4 p-4 rounded-lg hidden text-center font-bold transition-all text-sm"></div>
+                </div>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-bold text-lg mb-4 text-slate-900">Criterios (Adultos)</h3>
+                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg bg-white">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="py-3 pl-4 text-left text-xs font-bold text-slate-500 uppercase">Estado</th>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase">A1C</th>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase">Ayunas</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            <tr>
+                                <td class="py-3 pl-4 text-sm font-medium text-emerald-600">Normal</td>
+                                <td class="px-3 py-3 text-sm text-slate-500">< 5.7%</td>
+                                <td class="px-3 py-3 text-sm text-slate-500">< 100</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 pl-4 text-sm font-medium text-amber-600">Prediabetes</td>
+                                <td class="px-3 py-3 text-sm text-slate-500">5.7 - 6.4%</td>
+                                <td class="px-3 py-3 text-sm text-slate-500">100 - 125</td>
+                            </tr>
+                            <tr>
+                                <td class="py-3 pl-4 text-sm font-medium text-red-600">Diabetes</td>
+                                <td class="px-3 py-3 text-sm text-slate-500">≥ 6.5%</td>
+                                <td class="px-3 py-3 text-sm text-slate-500">≥ 126</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-xs text-slate-400 mt-2">*Requiere confirmación con segunda prueba salvo síntomas inequívocos.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-16 bg-slate-900 text-white" id="algoritmo">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-extrabold text-white">Algoritmo Farmacológico 2025</h2>
+            <p class="mt-2 text-slate-400">Asistente paso a paso para la selección de terapia.</p>
+        </div>
+        
+        <div class="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden flex flex-col md:flex-row min-h-[450px]">
+            <div class="w-full md:w-1/3 bg-slate-900/50 p-6 border-b md:border-b-0 md:border-r border-slate-700 flex flex-col gap-6">
+                <div id="step1-ind" class="flex items-center gap-3 text-blue-400 font-bold">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white">1</div>
+                    <span>Comorbilidades CKM</span>
+                </div>
+                <div id="step2-ind" class="flex items-center gap-3 text-slate-500">
+                    <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">2</div>
+                    <span>Objetivo Principal</span>
+                </div>
+                <div id="step3-ind" class="flex items-center gap-3 text-slate-500">
+                    <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">3</div>
+                    <span>Recomendación</span>
+                </div>
+            </div>
+            
+            <div class="w-full md:w-2/3 p-8 relative">
+                <div id="step1" class="fade-in">
+                    <h3 class="text-xl font-bold mb-6">¿Tiene el paciente alguna de estas condiciones?</h3>
+                    <div class="space-y-3">
+                        <label class="flex items-start p-3 rounded-lg border border-slate-600 cursor-pointer hover:bg-slate-700">
+                            <input type="checkbox" class="risk-checkbox mt-1 w-5 h-5 rounded bg-slate-700 border-slate-500 text-blue-600 focus:ring-blue-500">
+                            <div class="ml-3">
+                                <span class="block text-white font-medium">Falla Cardíaca (HF)</span>
+                                <span class="block text-slate-400 text-sm">Con fracción preservada o reducida.</span>
+                            </div>
+                        </label>
+                        <label class="flex items-start p-3 rounded-lg border border-slate-600 cursor-pointer hover:bg-slate-700">
+                            <input type="checkbox" class="risk-checkbox mt-1 w-5 h-5 rounded bg-slate-700 border-slate-500 text-blue-600 focus:ring-blue-500">
+                            <div class="ml-3">
+                                <span class="block text-white font-medium">Enfermedad Renal (CKD)</span>
+                                <span class="block text-slate-400 text-sm">eGFR < 60 o Albuminuria.</span>
+                            </div>
+                        </label>
+                        <label class="flex items-start p-3 rounded-lg border border-slate-600 cursor-pointer hover:bg-slate-700">
+                            <input type="checkbox" class="risk-checkbox mt-1 w-5 h-5 rounded bg-slate-700 border-slate-500 text-blue-600 focus:ring-blue-500">
+                            <div class="ml-3">
+                                <span class="block text-white font-medium">Enfermedad CV (ASCVD)</span>
+                                <span class="block text-slate-400 text-sm">Infarto, ACV, alto riesgo CV.</span>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="mt-6 flex justify-end">
+                        <button onclick="processStep1()" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-semibold text-white">Siguiente</button>
+                    </div>
+                </div>
+
+                <div id="step2" class="hidden fade-in">
+                    <h3 class="text-xl font-bold mb-6">¿Cuál es la prioridad clínica?</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button onclick="showRecommendation('weight')" class="p-4 rounded-xl border border-slate-600 hover:bg-slate-700 text-left group">
+                            <span class="material-symbols-outlined text-emerald-400 text-3xl mb-2">scale</span>
+                            <h4 class="text-lg font-bold text-white">Control de Peso</h4>
+                            <p class="text-slate-400 text-sm">Priorizar pérdida de peso significativa.</p>
+                        </button>
+                        <button onclick="showRecommendation('glucose')" class="p-4 rounded-xl border border-slate-600 hover:bg-slate-700 text-left group">
+                            <span class="material-symbols-outlined text-blue-400 text-3xl mb-2">glucose</span>
+                            <h4 class="text-lg font-bold text-white">Control Glucémico</h4>
+                            <p class="text-slate-400 text-sm">Eficacia, costo y acceso.</p>
+                        </button>
+                    </div>
+                    <div class="mt-6">
+                        <button onclick="resetWizard()" class="text-slate-400 hover:text-white text-sm">Volver al inicio</button>
+                    </div>
+                </div>
+
+                <div id="step3" class="hidden fade-in h-full flex flex-col">
+                    <div id="rec-content" class="flex-grow"></div>
+                    <div class="mt-6 pt-4 border-t border-slate-700">
+                        <button onclick="resetWizard()" class="text-blue-400 hover:text-white text-sm flex items-center gap-2">
+                            <span class="material-symbols-outlined text-sm">refresh</span> Reiniciar Algoritmo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-16 bg-slate-50" id="metas">
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-extrabold text-slate-900">Metas 2025</h2>
+            <p class="text-slate-500 mt-2">Toque las tarjetas para ver detalles.</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <span class="material-symbols-outlined text-blue-600 text-4xl mb-2">bloodtype</span>
+                        <h3 class="text-xl font-bold text-slate-900">A1C</h3>
+                        <div class="mt-2 text-4xl font-bold text-blue-600">< 7.0%</div>
+                        <p class="text-xs text-slate-400 mt-4 absolute bottom-4">Ver detalles</p>
+                    </div>
+                    <div class="flip-card-back bg-blue-600">
+                        <h3 class="text-lg font-bold mb-2">Objetivos</h3>
+                        <p class="text-sm px-4 text-blue-100">< 7.0% para la mayoría.</p>
+                        <p class="text-sm px-4 mt-2 text-blue-100">< 8.0% si hay esperanza de vida limitada o riesgo alto de hipoglucemia.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <span class="material-symbols-outlined text-red-600 text-4xl mb-2">speed</span>
+                        <h3 class="text-xl font-bold text-slate-900">Presión Arterial</h3>
+                        <div class="mt-2 text-4xl font-bold text-red-600">< 130/80</div>
+                        <p class="text-xs text-slate-400 mt-4 absolute bottom-4">Ver detalles</p>
+                    </div>
+                    <div class="flip-card-back bg-red-600">
+                        <h3 class="text-lg font-bold mb-2">Manejo</h3>
+                        <p class="text-sm px-4 text-red-100">Objetivo estándar si se tolera.</p>
+                        <p class="text-sm px-4 mt-2 text-red-100">Iniciar fármacos si PA confirmada ≥ 130/80 mmHg + Estilo de vida.</p>
+                    </div>
+                </div>
+            </div>
+             <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <span class="material-symbols-outlined text-amber-600 text-4xl mb-2">water_drop</span>
+                        <h3 class="text-xl font-bold text-slate-900">LDL</h3>
+                        <div class="mt-2 text-4xl font-bold text-amber-600">< 70 <span class="text-lg">mg/dL</span></div>
+                        <p class="text-xs text-slate-400 mt-4 absolute bottom-4">Ver detalles</p>
+                    </div>
+                    <div class="flip-card-back bg-amber-600">
+                        <h3 class="text-lg font-bold mb-2">Lípidos</h3>
+                        <p class="text-sm px-4 text-amber-100">< 70 mg/dL en Prevención Primaria (40-75 años).</p>
+                        <p class="text-sm px-4 mt-2 text-amber-100">< 55 mg/dL en Prevención Secundaria (Enf. CV establecida).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-12 bg-white border-t border-slate-200">
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <div>
+                <h2 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-green-600">self_improvement</span> Estilo de Vida
+                </h2>
+                <div class="space-y-4">
+                    <div class="flex gap-4 items-start">
+                        <span class="material-symbols-outlined text-slate-400 text-3xl">bedtime</span>
+                        <div>
+                            <h3 class="font-bold text-slate-800">Sueño</h3>
+                            <p class="text-slate-600 text-sm">Pilar central. Evaluar apnea y calidad de sueño rutinariamente.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 items-start">
+                        <span class="material-symbols-outlined text-slate-400 text-3xl">fitness_center</span>
+                        <div>
+                            <h3 class="font-bold text-slate-800">Fuerza Muscular</h3>
+                            <p class="text-slate-600 text-sm">Crucial para evitar sarcopenia en pacientes con GLP-1.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-purple-600">devices</span> Tecnología
+                </h2>
+                <div class="bg-purple-50 rounded-xl p-5 border border-purple-100">
+                    <div class="mb-3">
+                        <h3 class="font-bold text-purple-900 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-sm">sensors</span> CGM
+                        </h3>
+                        <p class="text-purple-800 text-sm">Recomendado ampliamente, incluso en T2D sin insulina.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-purple-900 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-sm">medication_liquid</span> AID
+                        </h3>
+                        <p class="text-purple-800 text-sm">Entrega automática de insulina para todos los adultos con T1D.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="bg-slate-900 text-slate-400 py-6 text-center text-xs mt-auto">
+    <p>Resumen educativo basado en Standards of Care ADA 2025. Uso exclusivo profesional.</p>
+</footer>
+
+<script>
+    // Diagnóstico
+    function checkDiagnosis() {
+        const a1c = parseFloat(document.getElementById('a1cInput').value);
+        const fpg = parseFloat(document.getElementById('fpgInput').value);
+        const res = document.getElementById('diagnosisResult');
+        
+        if (isNaN(a1c) && isNaN(fpg)) { res.classList.add('hidden'); return; }
+
+        let status = "Normal";
+        let cls = "bg-emerald-100 text-emerald-800";
+
+        if ((a1c >= 6.5) || (fpg >= 126)) {
+            status = "Posible DIABETES"; cls = "bg-red-100 text-red-800 border border-red-200";
+        } else if ((a1c >= 5.7) || (fpg >= 100)) {
+            status = "PREDIABETES"; cls = "bg-amber-100 text-amber-800 border border-amber-200";
+        }
+
+        res.textContent = status;
+        res.className = `mt-4 p-4 rounded-lg text-center font-bold transition-all text-sm ${cls}`;
+        res.classList.remove('hidden');
+    }
+
+    // Algoritmo Wizard
+    function processStep1() {
+        const cbs = document.querySelectorAll('.risk-checkbox');
+        let risk = false;
+        cbs.forEach(cb => { if(cb.checked) risk = true; });
+
+        document.getElementById('step1').classList.add('hidden');
+        updateInd('step1-ind', true);
+
+        if (risk) {
+            showRecommendation('risk');
+        } else {
+            document.getElementById('step2').classList.remove('hidden');
+            updateInd('step2-ind', false, true);
+        }
+    }
+
+    function showRecommendation(type) {
+        document.getElementById('step2').classList.add('hidden');
+        document.getElementById('step3').classList.remove('hidden');
+        updateInd('step3-ind', false, true);
+        
+        const content = document.getElementById('rec-content');
+        let html = '';
+
+        if (type === 'risk') {
+            html = `
+                <div class="flex items-center gap-3 mb-4 text-red-400">
+                    <span class="material-symbols-outlined text-3xl">cardiology</span>
+                    <h3 class="text-xl font-bold text-white">Protección de Órganos</h3>
+                </div>
+                <p class="text-slate-300 mb-4 text-sm">Independientemente de la A1C, iniciar:</p>
+                <div class="space-y-3">
+                    <div class="bg-slate-700 p-3 rounded border-l-4 border-blue-500">
+                        <h4 class="font-bold text-blue-400">GLP-1 RA</h4>
+                        <p class="text-xs text-slate-300">Preferido en ASCVD. (Ej. Semaglutida).</p>
+                    </div>
+                    <div class="bg-slate-700 p-3 rounded border-l-4 border-emerald-500">
+                        <h4 class="font-bold text-emerald-400">SGLT2 Inhibitor</h4>
+                        <p class="text-xs text-slate-300">Preferido en Falla Cardíaca y CKD.</p>
+                    </div>
+                </div>`;
+        } else if (type === 'weight') {
+            html = `
+                <div class="flex items-center gap-3 mb-4 text-emerald-400">
+                    <span class="material-symbols-outlined text-3xl">scale</span>
+                    <h3 class="text-xl font-bold text-white">Enfoque en Peso</h3>
+                </div>
+                <div class="bg-slate-700 p-3 rounded border-l-4 border-purple-500 mb-3">
+                    <h4 class="font-bold text-purple-400">Alta Eficacia</h4>
+                    <p class="text-xs text-slate-300">Tirzepatida (Dual GIP/GLP-1) o Semaglutida (GLP-1).</p>
+                </div>
+                <p class="text-xs text-slate-400">Evitar Sulfonilureas (ganancia de peso).</p>`;
+        } else {
+            html = `
+                <div class="flex items-center gap-3 mb-4 text-blue-400">
+                    <span class="material-symbols-outlined text-3xl">glucose</span>
+                    <h3 class="text-xl font-bold text-white">Control Glucémico</h3>
+                </div>
+                <div class="space-y-3">
+                    <div class="bg-slate-700 p-3 rounded border-l-4 border-blue-500">
+                        <h4 class="font-bold text-blue-400">Metformina</h4>
+                        <p class="text-xs text-slate-300">Primera línea. Eficaz y segura.</p>
+                    </div>
+                    <div class="bg-slate-700 p-3 rounded border-l-4 border-yellow-500">
+                        <h4 class="font-bold text-yellow-400">Terapia Dual</h4>
+                        <p class="text-xs text-slate-300">Si A1C > 1.5% sobre meta, iniciar combinación inmediatamente.</p>
+                    </div>
+                </div>`;
+        }
+        content.innerHTML = html;
+    }
+
+    function resetWizard() {
+        document.getElementById('step3').classList.add('hidden');
+        document.getElementById('step2').classList.add('hidden');
+        document.getElementById('step1').classList.remove('hidden');
+        document.querySelectorAll('.risk-checkbox').forEach(cb => cb.checked = false);
+        
+        // Reset styles
+        resetInd('step1-ind', true);
+        resetInd('step2-ind');
+        resetInd('step3-ind');
+    }
+
+    function updateInd(id, done, active) {
+        const el = document.getElementById(id);
+        const circ = el.querySelector('div');
+        if (active) {
+            el.className = 'flex items-center gap-3 text-blue-400 font-bold';
+            circ.className = 'w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white';
+        } else if (done) {
+            el.className = 'flex items-center gap-3 text-blue-600';
+        }
+    }
+
+    function resetInd(id, active) {
+        const el = document.getElementById(id);
+        const circ = el.querySelector('div');
+        if(active) {
+            el.className = 'flex items-center gap-3 text-blue-400 font-bold';
+            circ.className = 'w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white';
+        } else {
+            el.className = 'flex items-center gap-3 text-slate-500';
+            circ.className = 'w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-300';
+        }
+    }
+</script>
+
+</body>
+</html>
